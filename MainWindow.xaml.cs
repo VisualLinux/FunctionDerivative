@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Text.RegularExpressions;
 using CalculateDerivative;
 
 namespace Derivative
@@ -28,12 +29,12 @@ namespace Derivative
 
         private void Check_Click(object sender, RoutedEventArgs e)
         {
-
+            IsValidText.Text = IsValid(Function.Text).ToString();
         }
         private bool IsValid(string expression)
         {
             List<char> validCharacters = new List<char>();
-            for (char i = 'a'; i <= 'Z'; i++)
+            for (char i = 'A'; i <= 'z'; i++)
             {
                 validCharacters.Add(i);
             }
@@ -61,7 +62,11 @@ namespace Derivative
             List<char> operators = validCharacters.SkipWhile(x => x != '9').ToList();
             List<string> function = new List<string>() { "log" };
             string newExpression = "";
-            List<string> expressions = GetParenthesizedStrings(expression, ref newExpression);
+            List<string> expressions = expression.IndexOf('(') == -1 ? new List<string>() : GetParenthesizedStrings(expression, ref newExpression);
+            if (expressions.Count == 0)
+            {
+                newExpression = expression;
+            }
             for (int i = 0; i < expressions.Count; i++)
             {
                 string expr = expressions[i];
@@ -71,20 +76,33 @@ namespace Derivative
                 }
 
             }
+            Regex log = new Regex("log\\\\(\\d+)");
+            newExpression = log.Replace(newExpression, x => "\\" + x.Groups[1].Value);
+            Regex regex = new Regex("((\\d+|[a-zA-Z]+|\\\\\\d+)(\\+|-|\\*|/|\\^))*(\\d+|[a-zA-Z]|\\\\\\d+)");
+            return regex.Match(newExpression).Value == newExpression;
         }
         private List<string> GetParenthesizedStrings(string expression, ref string newExpression)
         {
             List<string> strings = new List<string>();
             int index = 0;
             int num = 0;
-            do
+            newExpression += expression.Substring(index, expression.Substring(index).IndexOf('(')) + "\\" + num;
+            num++;
+            index += expression.Substring(index).IndexOf('(');
+            strings.Add(GetFirstParenthesizedString(expression.Substring(index)));
+            index += strings[strings.Count - 1].Length + 2;
+            while (index != expression.Length)
             {
-                newExpression += expression.Substring(index + 2, expression.Substring(index).IndexOf('(') - (index + 2)) + "\\" + num;
+                if (expression.Substring(index).IndexOf('(') == -1)
+                {
+                    break;
+                }
+                newExpression += expression.Substring(index, expression.Substring(index).IndexOf('(')) + "\\" + num;
                 num++;
-                index = expression.Substring(index).IndexOf('(') + 1;
+                index += expression.Substring(index).IndexOf('(');
                 strings.Add(GetFirstParenthesizedString(expression.Substring(index)));
-                index += strings[strings.Count - 1].Length;
-            } while (index != 0);
+                index += strings[strings.Count - 1].Length + 2;
+            }
             return strings;
         }
         private static string GetFirstParenthesizedString(string expression)
@@ -117,6 +135,28 @@ namespace Derivative
             }
             endIndex = index - 1;
             return (expression.Substring(startIndex, endIndex - startIndex + 1));
+        }
+
+        private void Derivate_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+        private MathExpression Parse(string expression)
+        {
+            List<MathExpression> subExpressions = new List<MathExpression>();
+            string newExpression = "";
+            int num = 0;
+            int lastClosedParenthesis = 0;
+            for (int i = 0; i < expression.Length; i++)
+            {
+                if (expression[i] == '(')
+                {
+                    subExpressions.Add(Parse(GetFirstParenthesizedString(expression.Substring(i))));
+                    newExpression += expression.Substring(lastClosedParenthesis, i + 1);
+                    newExpression += "\\" + num;
+                    num++;
+                }
+            }
         }
     }
 }

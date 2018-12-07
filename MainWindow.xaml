@@ -10,7 +10,8 @@
         <TextBox x:Name="Function" HorizontalAlignment="Left" Height="33" Margin="48,62,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="167"/>
         <TextBox x:Name="Derivative" HorizontalAlignment="Left" Height="33" Margin="488,62,0,0" TextWrapping="Wrap" Text="Derivative" VerticalAlignment="Top" Width="167" IsEnabled="False"/>
         <Button x:Name="Check" Content="Check" HorizontalAlignment="Left" Height="46" Margin="68,203,0,0" VerticalAlignment="Top" Width="147" Click="Check_Click"/>
-        <Button x:Name="Derivate" Content="Derivate" HorizontalAlignment="Left" Height="46" Margin="508,203,0,0" VerticalAlignment="Top" Width="147"/>
+        <Button x:Name="Derivate" Content="Derivate" HorizontalAlignment="Left" Height="46" Margin="508,203,0,0" VerticalAlignment="Top" Width="147" Click="Derivate_Click"/>
+        <TextBox x:Name="IsValidText" HorizontalAlignment="Left" Height="41" Margin="215,112,0,0" TextWrapping="Wrap" Text="Validity" VerticalAlignment="Top" Width="271" IsEnabled="False"/>
 
     </Grid>
 </Window>
