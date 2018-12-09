@@ -14,6 +14,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Text.RegularExpressions;
 using CalculateDerivative;
+using CalculateDerivative.Operations;
 
 namespace Derivative
 {
@@ -29,6 +30,10 @@ namespace Derivative
 
         private void Check_Click(object sender, RoutedEventArgs e)
         {
+            if (Function.Text.IndexOf('\\') != -1)
+            {
+                IsValidText.Text = false.ToString();
+            }
             IsValidText.Text = IsValid(Function.Text).ToString();
         }
         private bool IsValid(string expression)
@@ -143,6 +148,15 @@ namespace Derivative
         }
         private MathExpression Parse(string expression)
         {
+            List<MathExpression> mathExpression = Lexer(expression);
+            for (int i = mathExpression.Count - 1; i >= 0; i--)
+            {
+
+            }
+        }
+        private List<MathExpression> Lexer(string expression)
+        {
+            List<MathExpression> Nodes = new List<MathExpression>();
             List<MathExpression> subExpressions = new List<MathExpression>();
             string newExpression = "";
             int num = 0;
@@ -152,11 +166,90 @@ namespace Derivative
                 if (expression[i] == '(')
                 {
                     subExpressions.Add(Parse(GetFirstParenthesizedString(expression.Substring(i))));
-                    newExpression += expression.Substring(lastClosedParenthesis, i + 1);
+                    newExpression += expression.Substring(lastClosedParenthesis + 1, i - lastClosedParenthesis);
                     newExpression += "\\" + num;
                     num++;
                 }
+                lastClosedParenthesis = expression.Substring(i).IndexOf(')');
             }
+            Regex log = new Regex("log\\\\(\\d+)");
+            newExpression = log.Replace(newExpression, x =>
+            {
+                subExpressions[int.Parse(x.Groups[1].Value)] = new MathExpression(
+                            new CalculateDerivative.Operations.Log(new[] { subExpressions[int.Parse(x.Groups[1].Value)].Root }, Math.E));
+                return "\\" + x.Groups[1].Value;
+            });
+            for (int i = 0; i < expression.Length;)
+            {
+                if (int.TryParse(expression[i].ToString(), out _))
+                {
+                    int j = i + 1;
+                    while (int.TryParse(expression[j].ToString(), out _))
+                    {
+
+                        j++;
+                        if (j == expression.Length + 1)
+                        {
+                            break;
+                        }
+                    }
+                    Nodes.Add(new MathExpression(new Constant(int.Parse(expression.Substring(i, j - i)))));
+                    i = j;
+                }
+                else if (expression[i] == '\\')
+                {
+                    int j = i + 1;
+                    while (int.TryParse(expression[j].ToString(), out _))
+                    {
+
+                        j++;
+                        if (j == expression.Length + 1)
+                        {
+                            break;
+                        }
+                    }
+                    Nodes.Add(subExpressions[int.Parse(expression.Substring(i, j - i))]);
+                    i = j;
+                }
+                else if (new[] { '+', '-', '*', '/', '^' }.Intersect(new[] { expression[i] }).Count() == 0)
+                {
+                    int j = i + 1;
+                    while (new[] { '+', '-', '*', '/', '^' }.Intersect(new[] { expression[j] }).Count() == 0)
+                    {
+                        j++;
+                        if (j == expression.Length + 1)
+                        {
+                            break;
+                        }
+                    }
+                    Nodes.Add(new MathExpression(new Variable(expression.Substring(j, j - i))));
+                }
+                else
+                {
+                    switch (expression[i])
+                    {
+                        case '+':
+                            Nodes.Add(new MathExpression(new Add(new[] { new Constant(0), new Constant(0) })));
+                            break;
+                        case '-':
+                            Nodes.Add(new MathExpression(new Subtract(new[] { new Constant(0), new Constant(0) })));
+                            break;
+                        case '*':
+                            Nodes.Add(new MathExpression(new Multiply(new[] { new Constant(0), new Constant(0) })));
+                            break;
+                        case '/':
+                            Nodes.Add(new MathExpression(new Divide(new[] { new Constant(0), new Constant(0) })));
+                            break;
+                        case '^':
+                            Nodes.Add(new MathExpression(new Power(new[] { new Constant(0), new Constant(0) })));
+                            break;
+                        default:
+                            break;
+                    }
+                    i++;
+                }
+            }
+            throw new NotImplementedException();
         }
     }
 }
