@@ -144,104 +144,160 @@ namespace Derivative
 
         private void Derivate_Click(object sender, RoutedEventArgs e)
         {
-
+            if (!IsValid(Function.Text))
+            {
+                IsValidText.Text = false.ToString();
+                return;
+            }
+            MathExpression function = Parse(Function.Text);
+            MathExpression derivative = function.Root.Derivative(Variable.Text);
+            Derivative.Text = derivative.ToString();
         }
         private MathExpression Parse(string expression)
         {
-            List<MathExpression> mathExpression = Lexer(expression);
+            List<Tuple<string, MathExpression>> mathExpressionTuple = Lexer(expression);
+            List<MathExpression> mathExpression = mathExpressionTuple.ConvertAll(x => x.Item2);
             for (int i = mathExpression.Count - 1; i >= 0; i--)
             {
-
+                if (mathExpressionTuple[i].Item1 == "^")
+                {
+                    mathExpression[i] = new MathExpression(new Power(new[] { mathExpression[i - 1].Root, mathExpression[i + 1].Root }));
+                    mathExpression.RemoveAt(i - 1);
+                    mathExpression.RemoveAt(i);
+                    i = mathExpression.Count;
+                }
             }
+            for (int i = 0; i < mathExpression.Count; i++)
+            {
+                if (mathExpressionTuple[i].Item1 == "*")
+                {
+                    mathExpression[i] = new MathExpression(new Multiply(new[] { mathExpression[i - 1].Root, mathExpression[i + 1].Root }));
+                    mathExpression.RemoveAt(i - 1);
+                    mathExpression.RemoveAt(i);
+                    i = -1;
+                }
+                else if (mathExpressionTuple[i].Item1 == "/")
+                {
+                    mathExpression[i] = new MathExpression(new Divide(new[] { mathExpression[i - 1].Root, mathExpression[i + 1].Root }));
+                    mathExpression.RemoveAt(i - 1);
+                    mathExpression.RemoveAt(i);
+                    i = -1;
+                }
+            }
+            for (int i = 0; i < mathExpression.Count; i++)
+            {
+                if (mathExpressionTuple[i].Item1 == "+")
+                {
+                    mathExpression[i] = new MathExpression(new Add(new[] { mathExpression[i - 1].Root, mathExpression[i + 1].Root }));
+                    mathExpression.RemoveAt(i - 1);
+                    mathExpression.RemoveAt(i);
+                    i = -1;
+                }
+                else if (mathExpressionTuple[i].Item1 == "-")
+                {
+                    mathExpression[i] = new MathExpression(new Subtract(new[] { mathExpression[i - 1].Root, mathExpression[i + 1].Root }));
+                    mathExpression.RemoveAt(i - 1);
+                    mathExpression.RemoveAt(i);
+                    i = -1;
+                }
+            }
+            return mathExpression[0];
         }
-        private List<MathExpression> Lexer(string expression)
+        private List<Tuple<string, MathExpression>> Lexer(string expression)
         {
-            List<MathExpression> Nodes = new List<MathExpression>();
+            List<Tuple<string, MathExpression>> Tokens = new List<Tuple<string, MathExpression>>();
             List<MathExpression> subExpressions = new List<MathExpression>();
             string newExpression = "";
             int num = 0;
-            int lastClosedParenthesis = 0;
+            int lastClosedParenthesis = -1;
             for (int i = 0; i < expression.Length; i++)
             {
                 if (expression[i] == '(')
                 {
                     subExpressions.Add(Parse(GetFirstParenthesizedString(expression.Substring(i))));
-                    newExpression += expression.Substring(lastClosedParenthesis + 1, i - lastClosedParenthesis);
+                    newExpression += expression.Substring(lastClosedParenthesis + 1, i - lastClosedParenthesis - 1);
                     newExpression += "\\" + num;
                     num++;
                 }
-                lastClosedParenthesis = expression.Substring(i).IndexOf(')');
+                if (expression[i]==')')
+                {
+                    lastClosedParenthesis = i;
+                }
+            }
+            if (expression.IndexOf('(') == -1)
+            {
+                newExpression = expression;
             }
             Regex log = new Regex("log\\\\(\\d+)");
             newExpression = log.Replace(newExpression, x =>
             {
                 subExpressions[int.Parse(x.Groups[1].Value)] = new MathExpression(
-                            new CalculateDerivative.Operations.Log(new[] { subExpressions[int.Parse(x.Groups[1].Value)].Root }, Math.E));
+                            new Log(new[] { subExpressions[int.Parse(x.Groups[1].Value)].Root }, Math.E));
                 return "\\" + x.Groups[1].Value;
             });
-            for (int i = 0; i < expression.Length;)
+            for (int i = 0; i < newExpression.Length;)
             {
-                if (int.TryParse(expression[i].ToString(), out _))
+                if (int.TryParse(newExpression[i].ToString(), out _))
+                {
+                    int j = i;
+                    while (int.TryParse(newExpression[j].ToString(), out _))
+                    {
+                        j++;
+                        if (j == newExpression.Length)
+                        {
+                            break;
+                        }
+                    }
+                    Tokens.Add(new Tuple<string, MathExpression>("num", new MathExpression(new Constant(int.Parse(newExpression.Substring(i, j - i))))));
+                    i = j;
+                }
+                else if (newExpression[i] == '\\')
                 {
                     int j = i + 1;
-                    while (int.TryParse(expression[j].ToString(), out _))
+                    while (int.TryParse(newExpression[j].ToString(), out _))
                     {
 
                         j++;
-                        if (j == expression.Length + 1)
+                        if (j == newExpression.Length)
                         {
                             break;
                         }
                     }
-                    Nodes.Add(new MathExpression(new Constant(int.Parse(expression.Substring(i, j - i)))));
+                    Tokens.Add(new Tuple<string, MathExpression>("expr", subExpressions[int.Parse(newExpression.Substring(i + 1, j - i - 1))]));
                     i = j;
                 }
-                else if (expression[i] == '\\')
+                else if (new[] { '+', '-', '*', '/', '^' }.Intersect(new[] { newExpression[i] }).Count() == 0)
                 {
-                    int j = i + 1;
-                    while (int.TryParse(expression[j].ToString(), out _))
+                    int j = i;
+                    while (new[] { '+', '-', '*', '/', '^' }.Intersect(new[] { newExpression[j] }).Count() == 0)
                     {
-
                         j++;
-                        if (j == expression.Length + 1)
+                        if (j == newExpression.Length)
                         {
                             break;
                         }
                     }
-                    Nodes.Add(subExpressions[int.Parse(expression.Substring(i, j - i))]);
+                    Tokens.Add(new Tuple<string, MathExpression>("var", new MathExpression(new Variable(newExpression.Substring(i, j - i)))));
                     i = j;
-                }
-                else if (new[] { '+', '-', '*', '/', '^' }.Intersect(new[] { expression[i] }).Count() == 0)
-                {
-                    int j = i + 1;
-                    while (new[] { '+', '-', '*', '/', '^' }.Intersect(new[] { expression[j] }).Count() == 0)
-                    {
-                        j++;
-                        if (j == expression.Length + 1)
-                        {
-                            break;
-                        }
-                    }
-                    Nodes.Add(new MathExpression(new Variable(expression.Substring(j, j - i))));
                 }
                 else
                 {
-                    switch (expression[i])
+                    switch (newExpression[i])
                     {
                         case '+':
-                            Nodes.Add(new MathExpression(new Add(new[] { new Constant(0), new Constant(0) })));
+                            Tokens.Add(new Tuple<string, MathExpression>("+", null));
                             break;
                         case '-':
-                            Nodes.Add(new MathExpression(new Subtract(new[] { new Constant(0), new Constant(0) })));
+                            Tokens.Add(new Tuple<string, MathExpression>("-", null));
                             break;
                         case '*':
-                            Nodes.Add(new MathExpression(new Multiply(new[] { new Constant(0), new Constant(0) })));
+                            Tokens.Add(new Tuple<string, MathExpression>("*", null));
                             break;
                         case '/':
-                            Nodes.Add(new MathExpression(new Divide(new[] { new Constant(0), new Constant(0) })));
+                            Tokens.Add(new Tuple<string, MathExpression>("/", null));
                             break;
                         case '^':
-                            Nodes.Add(new MathExpression(new Power(new[] { new Constant(0), new Constant(0) })));
+                            Tokens.Add(new Tuple<string, MathExpression>("^", null));
                             break;
                         default:
                             break;
@@ -249,7 +305,7 @@ namespace Derivative
                     i++;
                 }
             }
-            throw new NotImplementedException();
+            return Tokens;
         }
     }
 }

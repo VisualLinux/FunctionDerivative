@@ -12,6 +12,7 @@
         <Button x:Name="Check" Content="Check" HorizontalAlignment="Left" Height="46" Margin="68,203,0,0" VerticalAlignment="Top" Width="147" Click="Check_Click"/>
         <Button x:Name="Derivate" Content="Derivate" HorizontalAlignment="Left" Height="46" Margin="508,203,0,0" VerticalAlignment="Top" Width="147" Click="Derivate_Click"/>
         <TextBox x:Name="IsValidText" HorizontalAlignment="Left" Height="41" Margin="215,112,0,0" TextWrapping="Wrap" Text="Validity" VerticalAlignment="Top" Width="271" IsEnabled="False"/>
+        <TextBox x:Name="Variable" HorizontalAlignment="Left" Height="33" Margin="263,62,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="100"/>
 
     </Grid>
 </Window>
