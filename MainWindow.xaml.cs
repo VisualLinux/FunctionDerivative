@@ -32,9 +32,10 @@ namespace Derivative
         {
             if (Function.Text.IndexOf('\\') != -1)
             {
-                IsValidText.Text = false.ToString();
+                IsValidCheckBox.IsChecked = false;
+                return;
             }
-            IsValidText.Text = IsValid(Function.Text).ToString();
+            IsValidCheckBox.IsChecked = IsValid(Function.Text);
         }
         private bool IsValid(string expression)
         {
@@ -83,7 +84,7 @@ namespace Derivative
             }
             Regex log = new Regex("log\\\\(\\d+)");
             newExpression = log.Replace(newExpression, x => "\\" + x.Groups[1].Value);
-            Regex regex = new Regex("((\\d+|[a-zA-Z]+|\\\\\\d+)(\\+|-|\\*|/|\\^))*(\\d+|[a-zA-Z]|\\\\\\d+)");
+            Regex regex = new Regex("(-)?((\\d+|[a-zA-Z]+|\\\\\\d+)(\\+|-|\\*|/|\\^))*(\\d+|[a-zA-Z]|\\\\\\d+)");
             return regex.Match(newExpression).Value == newExpression;
         }
         private List<string> GetParenthesizedStrings(string expression, ref string newExpression)
@@ -144,11 +145,17 @@ namespace Derivative
 
         private void Derivate_Click(object sender, RoutedEventArgs e)
         {
-            if (!IsValid(Function.Text))
+            if (Function.Text.IndexOf('\\') != -1)
             {
-                IsValidText.Text = false.ToString();
+                IsValidCheckBox.IsChecked = false;
                 return;
             }
+            if (!IsValid(Function.Text))
+            {
+                IsValidCheckBox.IsChecked = false;
+                return;
+            }
+            IsValidCheckBox.IsChecked = true;
             MathExpression function = Parse(Function.Text);
             MathExpression derivative = function.Root.Derivative(Variable.Text);
             Derivative.Text = derivative.ToString();
@@ -210,24 +217,29 @@ namespace Derivative
             string newExpression = "";
             int num = 0;
             int lastClosedParenthesis = -1;
+            int openCount = 0;
+            int closedCount = 0;
             for (int i = 0; i < expression.Length; i++)
             {
-                if (expression[i] == '(')
+                openCount += expression[i] == '(' ? 1 : 0;
+                closedCount += expression[i] == ')' ? 1 : 0;
+                if (expression[i] == '(' && openCount - 1 == closedCount)
                 {
                     subExpressions.Add(Parse(GetFirstParenthesizedString(expression.Substring(i))));
                     newExpression += expression.Substring(lastClosedParenthesis + 1, i - lastClosedParenthesis - 1);
                     newExpression += "\\" + num;
                     num++;
                 }
-                if (expression[i]==')')
+                if (expression[i] == ')' && openCount == closedCount)
                 {
                     lastClosedParenthesis = i;
                 }
             }
-            if (expression.IndexOf('(') == -1)
-            {
-                newExpression = expression;
-            }
+            newExpression += expression.Substring(lastClosedParenthesis + 1);
+            //if (expression.IndexOf('(') == -1)
+            //{
+            //    newExpression = expression;
+            //}
             Regex log = new Regex("log\\\\(\\d+)");
             newExpression = log.Replace(newExpression, x =>
             {
@@ -240,6 +252,20 @@ namespace Derivative
                 if (int.TryParse(newExpression[i].ToString(), out _))
                 {
                     int j = i;
+                    while (int.TryParse(newExpression[j].ToString(), out _))
+                    {
+                        j++;
+                        if (j == newExpression.Length)
+                        {
+                            break;
+                        }
+                    }
+                    Tokens.Add(new Tuple<string, MathExpression>("num", new MathExpression(new Constant(int.Parse(newExpression.Substring(i, j - i))))));
+                    i = j;
+                }
+                else if (i == 0 && newExpression[i] == '-' && int.TryParse(newExpression[i + 1].ToString(), out _))
+                {
+                    int j = i + 1;
                     while (int.TryParse(newExpression[j].ToString(), out _))
                     {
                         j++;
@@ -266,6 +292,22 @@ namespace Derivative
                     Tokens.Add(new Tuple<string, MathExpression>("expr", subExpressions[int.Parse(newExpression.Substring(i + 1, j - i - 1))]));
                     i = j;
                 }
+                else if (i == 0 && newExpression[i] == '-' && newExpression[i + 1] == '\\')
+                {
+                    int j = i + 2;
+                    while (int.TryParse(newExpression[j].ToString(), out _))
+                    {
+
+                        j++;
+                        if (j == newExpression.Length)
+                        {
+                            break;
+                        }
+                    }
+                    Tokens.Add(new Tuple<string, MathExpression>("expr", new MathExpression(new Subtract(new Node[] {new Constant(0),
+                        subExpressions[int.Parse(newExpression.Substring(i + 2, j - i - 2))].Root }))));
+                    i = j;
+                }
                 else if (new[] { '+', '-', '*', '/', '^' }.Intersect(new[] { newExpression[i] }).Count() == 0)
                 {
                     int j = i;
@@ -278,6 +320,21 @@ namespace Derivative
                         }
                     }
                     Tokens.Add(new Tuple<string, MathExpression>("var", new MathExpression(new Variable(newExpression.Substring(i, j - i)))));
+                    i = j;
+                }
+                else if (i == 0 && newExpression[i] == '-' && new[] { '+', '-', '*', '/', '^' }.Intersect(new[] { newExpression[i + 1] }).Count() == 0)
+                {
+                    int j = i + 1;
+                    while (new[] { '+', '-', '*', '/', '^' }.Intersect(new[] { newExpression[j] }).Count() == 0)
+                    {
+                        j++;
+                        if (j == newExpression.Length)
+                        {
+                            break;
+                        }
+                    }
+                    Tokens.Add(new Tuple<string, MathExpression>("var", new MathExpression(new Subtract(
+                        new Node[] { new Constant(0), new Variable(newExpression.Substring(i + 1, j - i - 1)) }))));
                     i = j;
                 }
                 else

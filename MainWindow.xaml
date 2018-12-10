@@ -5,14 +5,17 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Derivative"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Derivative" Height="450" Width="800">
     <Grid>
-        <TextBox x:Name="Function" HorizontalAlignment="Left" Height="33" Margin="48,62,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="167"/>
-        <TextBox x:Name="Derivative" HorizontalAlignment="Left" Height="33" Margin="488,62,0,0" TextWrapping="Wrap" Text="Derivative" VerticalAlignment="Top" Width="167" IsEnabled="False"/>
+        <TextBox x:Name="Function" HorizontalAlignment="Left" Height="50" Margin="48,62,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="167"/>
+        <TextBlock x:Name="Derivative" HorizontalAlignment="Left" Height="91" Margin="488,62,0,0" TextWrapping="Wrap" Text="Derivative" VerticalAlignment="Top" Width="294" IsEnabled="False" ScrollViewer.CanContentScroll="True" IsManipulationEnabled="True"/>
         <Button x:Name="Check" Content="Check" HorizontalAlignment="Left" Height="46" Margin="68,203,0,0" VerticalAlignment="Top" Width="147" Click="Check_Click"/>
         <Button x:Name="Derivate" Content="Derivate" HorizontalAlignment="Left" Height="46" Margin="508,203,0,0" VerticalAlignment="Top" Width="147" Click="Derivate_Click"/>
-        <TextBox x:Name="IsValidText" HorizontalAlignment="Left" Height="41" Margin="215,112,0,0" TextWrapping="Wrap" Text="Validity" VerticalAlignment="Top" Width="271" IsEnabled="False"/>
-        <TextBox x:Name="Variable" HorizontalAlignment="Left" Height="33" Margin="263,62,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="100"/>
+        <TextBox x:Name="Variable" HorizontalAlignment="Left" Height="33" Margin="259,62,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="100"/>
+        <Label Content="Function to derivate" HorizontalAlignment="Left" Height="27" Margin="48,30,0,0" VerticalAlignment="Top" Width="167"/>
+        <Label Content="Name of the variable" HorizontalAlignment="Left" Height="36" Margin="220,21,0,0" VerticalAlignment="Top" Width="139"/>
+        <Label Content="Derivative of the function" HorizontalAlignment="Left" Height="36" Margin="488,21,0,0" VerticalAlignment="Top" Width="167"/>
+        <CheckBox x:Name="IsValidCheckBox" Content="Validity" HorizontalAlignment="Left" Height="24" Margin="215,129,0,0" VerticalAlignment="Top" Width="144" IsEnabled="False"/>
 
     </Grid>
 </Window>
